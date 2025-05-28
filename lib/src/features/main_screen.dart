@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:future_builder_task/src/app.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -8,9 +9,22 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  TextEditingController? _plzController;
+
+  Future<String>? _cityFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _plzController = TextEditingController();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Suche PLZ'),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Center(
@@ -18,6 +32,7 @@ class _MainScreenState extends State<MainScreen> {
             spacing: 32,
             children: [
               TextFormField(
+                controller: _plzController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: "Postleitzahl",
@@ -25,14 +40,32 @@ class _MainScreenState extends State<MainScreen> {
               ),
               OutlinedButton(
                 onPressed: () {
-                  // TODO: implementiere Suche
+                  setState(() {
+                    _cityFuture = getCityFromZip(_plzController!.text);
+                  });
                 },
                 child: const Text("Suche"),
               ),
-              Text(
-                "Ergebnis: Noch keine PLZ gesucht",
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              _cityFuture == null
+                  ? Text(
+                      "Ergebnis: Noch keine PLZ gesucht",
+                      style: Theme.of(context).textTheme.labelLarge,
+                    )
+                  : FutureBuilder<String>(
+                      future: _cityFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (snapshot.hasData) {
+                          return Text('Stadt: ${snapshot.data}');
+                        } else {
+                          return Text('Keine Daten Gefunden');
+                        }
+                      },
+                    ),
             ],
           ),
         ),
@@ -42,7 +75,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
-    // TODO: dispose controllers
+    _plzController?.dispose();
     super.dispose();
   }
 
